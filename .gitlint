@@ -1,0 +1,2 @@
+[title-match-regex]
+regex=^\[(BUILD|DOCS|MERGE|BUGS|MISC)\] [A-Z]+?[\w]*?(?<!(ing))(?<!(ed))\s[\w\s]*$
