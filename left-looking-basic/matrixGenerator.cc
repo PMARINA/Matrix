@@ -1,5 +1,5 @@
 #include <memory>
-
+#include <string.h>
 double* genMatrix(const int n) {
   // My file parsing code works on windows but I need to figure out the
   // libraries for mac/linux. Will do eventually.

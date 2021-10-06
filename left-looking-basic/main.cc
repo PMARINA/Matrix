@@ -1,5 +1,6 @@
 
 #include <memory>
+#include <string.h>
 
 #include "matrixGenerator.cc"
 #include "matrixPrinter.cc"
@@ -60,11 +61,12 @@ double** ludecompose(const double* m, const int n) {
           sumL31U12Product += l[(i - 1) * n + k] * solvedUpper[k];
         }
       }
-      const double thisSolution = (m[(i-j-1) * n + j] - sumL31U12Product) * invU22;
+      const double thisSolution = (m[(i-j) * n + j] - sumL31U12Product) * invU22;
       l[i * n + j] = thisSolution;
     }
+    cout << "End of solution iteration/column" << endl;
   }
-  free(solvedUpper);
+  // free(solvedUpper);
 
   return results;
 }
@@ -72,8 +74,11 @@ double** ludecompose(const double* m, const int n) {
 int main() {
   const int n = 4;
   double* matrix = genMatrix(n);
-  const double** result = (const double**)ludecompose(matrix, n);
+  double** result = ludecompose(matrix, n);
   printMatrices(matrix, result, n);
   free(matrix);
+  for(int i = 0; i<2; i++){
+    free(result[i]);
+  }
   free(result);
 }

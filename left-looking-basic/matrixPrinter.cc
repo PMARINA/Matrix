@@ -3,8 +3,8 @@
 using std::cout;
 using std::endl;
 
-void printMatrices(const double *original, const double **results,
-                   const int pivot_size) {
+void printMatrices(double *original, double **results,
+                    int pivot_size) {
   double *l = (double *)results[0];
   double *u = (double *)results[1];
 
