@@ -7,16 +7,18 @@
 
 double** ludecompose(const double* m, const int n) {
   double** results = (double**)malloc(sizeof(double*) * 2);
-  double* l = (double*)malloc(n * n);
-  double* u = (double*)malloc(n * n);
-  memset(l, 0, n * n);
-  memset(u, 0, n * n);
+  double* l = (double*)malloc(n * n * sizeof(double));
+  double* u = (double*)malloc(n * n * sizeof(double));
+  memset(l, 0, n * n* sizeof(double));
+  memset(u, 0, n * n * sizeof(double));
   results[0] = l;
   results[1] = u;
 
   // For caching the current column from U12
   double* solvedUpper = (double*)malloc(sizeof(double) * n);
-
+  cout << "Everything should be 0 here "<< endl;
+  printMatrices((double*)m, results, 4);
+  cout <<"Starting computation" <<endl;
   // Left looking, so we iterate by column, then by row!
   for (int j = 0; j < n; j++) {
     // The first row is the same as the original matrix
@@ -28,6 +30,7 @@ double** ludecompose(const double* m, const int n) {
     double upperPivotSum = 0;
     // i < j to avoid solving 0s at bottom of upper matrix.
     // Don't run the loop if it's going to hit 1,1
+    printMatrices((double*)m, results, 4);
     for (int i = (j == 1 ? 2 : 1); i < j; i++) {
       // Step 1: Solve for U21 through triangular solve
       double triangularSum = 0;
@@ -42,8 +45,16 @@ double** ludecompose(const double* m, const int n) {
       // elements. Use it while it's in register?
       upperPivotSum += l[j * n + i] * thisSolution;
     }
+    
+    double u22 = 0;
+    
+    if (j == 0){
+      u22 = m[0];
+    }
+    if (j == 1){
+      upperPivotSum = l[n] * solvedUpper[0];
+    }
     // Step 2: Solve the single diagonal element of U22
-    double u22 = m[0];
     solvedUpper[0] = u22;
     if (j != 0) {
       u22 = m[j * n + j] - upperPivotSum;
