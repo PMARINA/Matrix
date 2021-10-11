@@ -5,8 +5,8 @@ using std::endl;
 
 void printMatrices(double *original, double **results,
                     int pivot_size) {
-  double *l = (double *)results[0];
-  double *u = (double *)results[1];
+  double *l = (double *)(results[0]);
+  double *u = (double *)(results[1]);
   
   cout << "L was " << l <<endl;
   cout << "U was " << u <<endl;
@@ -21,7 +21,7 @@ void printMatrices(double *original, double **results,
     cout << "\n";
   }
 
-  cout << "Lower Matrix:\n";
+  cout << "\n\nLower Matrix:\n";
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
       cout << l[i * pivot_size + j] << "\t";
@@ -32,7 +32,7 @@ void printMatrices(double *original, double **results,
 
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
-      cout << u[i * pivot_size * j] << "\t";
+      cout << u[i * pivot_size + j] << "\t";
     }
     cout << "\n";
   }

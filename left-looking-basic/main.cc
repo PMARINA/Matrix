@@ -24,19 +24,19 @@ double** ludecompose(const double* m, const int n) {
   printMatrices((double*)m, results, 4);
   cout << "Starting computation" << endl;
   // Left looking, so we iterate by column, then by row!
-  for (int j = 0; j < n; j++) {
+  for (int j = 0; j < 2; j++) {
     // The first row is the same as the original matrix
     const double fromOrig = m[j];
-    printMatrices((double*)m, results, 4);
-    string test;
-    cin >> test;
+    // printMatrices((double*)m, results, 4);
+    // string test;
+    // cin >> test;
     u[j] = fromOrig;
-    printMatrices((double*)m, results, 4);
-    cin >> test;
+    // printMatrices((double*)m, results, 4);
+    // cin >> test;
     l[j * n + j] = 1;
     
     solvedUpper[0] = fromOrig;
-    double upperPivotSum = 0;
+    double upperPivotSum = j == 0 ? 0 : l[n] * solvedUpper[j*n];
     // i < j to avoid solving 0s at bottom of upper matrix.
     // Don't run the loop if it's going to hit 1,1
 
@@ -62,9 +62,6 @@ double** ludecompose(const double* m, const int n) {
     if (j == 0) {
       u22 = m[0];
     }
-    if (j == 1) {
-      upperPivotSum = l[n] * solvedUpper[0];
-    }
     // Step 2: Solve the single diagonal element of U22
     if (j != 0) {
       u22 = m[j * n + j] - upperPivotSum;
@@ -88,6 +85,8 @@ double** ludecompose(const double* m, const int n) {
       l[i * n + j] = thisSolution;
     }
     cout << "End of solution iteration/column" << endl;
+    printMatrices((double*)m, results, 4);
+    
   }
   // free(solvedUpper);
 
