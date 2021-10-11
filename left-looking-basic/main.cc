@@ -20,7 +20,8 @@ double** ludecompose(const double* m, const int n) {
 
   // For caching the current column from U12
   double* solvedUpper = (double*)malloc(sizeof(double) * n);
-  double* solvedLower = (double*) malloc(sizeof(double) * n);
+  double* sumLowerRows = (double*) malloc(sizeof(double) * n);
+  memset(sumLowerRows, 0, sizeof(double)*n);
   // cout << "Everything should be 0 here " << endl;
   // printMatrices((double*)m, results, 4);
   // cout << "Starting computation" << endl;
@@ -70,27 +71,49 @@ double** ludecompose(const double* m, const int n) {
     solvedUpper[j] = u22;
     const double invU22 = 1 / u22;
     // Step 3: Solve the lower matrix
+    sumLowerRows[j] += 1;
     for (int i = j+1; i < n; i++) {
-      if(j == 1 && i==2)
-        cout <<"test"<<endl<<endl<<endl;
+      double thisSolution = 0;
+      // if(j == 1 && i==2)
+        // cout <<"test"<<endl<<endl<<endl<<endl<<endl << "u22: " << u22<<endl;;
       double sumL31U12Product = 0;
       if (j != 0) {
-        for (int k = 0; k < i; k++) {
-          sumL31U12Product += l[(i - 1) * n + k] * solvedUpper[k];
+         double u12 = 0;
+        if (j == 1){
+          // U12 is a single value
+          u12 = solvedUpper[0];
+          sumL31U12Product = sumLowerRows[i] * u12;
+        } else {
+          u12 = solvedUpper[i-j-1];
         }
-        cout << "sum L31U12 Product = " << sumL31U12Product <<endl;
+         double l31 = 0;
+        if (j == (n-2)){
+          // L31 is a single row sum
+          l31 = sumLowerRows[n-1];
+        } else {
+          l31 = sumLowerRows[i];
+        }
+        // cout << "Solved Upper [" << i-j-1 << "] = " << u12 << endl;
+        // cout << "l31 = " << l31 << endl;
+        sumL31U12Product = l31 * u12;//(i - 1) * n + k
+        // cout << "sum L31U12 Product = " << sumL31U12Product <<endl;
+        // cout << "SumLowerRows[" << i <<"] = " << sumLowerRows[i] <<endl;
+        // cout << "A[" << i-j+2 << ", " << j+1 << "] = " << m[(i - j+1) * n + j] << endl;
+        thisSolution = (m[(i - j+1) * n + j] - sumL31U12Product) * invU22;
+      } else {
+        thisSolution = (m[(i - j) * n + j] - sumL31U12Product) * invU22;
       }
-      const double thisSolution =
-          (m[(i - j) * n + j] - sumL31U12Product) * invU22;
-      cout << "L[" << i + 1 << ", " << j + 1 << "] = " << thisSolution << endl;
+      
+      // cout << "L[" << i + 1 << ", " << j + 1 << "] = " << thisSolution << endl<<endl;
       l[i * n + j] = thisSolution;
+      sumLowerRows[i] += thisSolution;
     }
     // cout << "End of solution iteration/column" << endl;
     // printMatrices((double*)m, results, 4);
     
   }
   // free(solvedUpper);
-  // free(solvedLower)
+  // free(sumLowerRows)
 
   return results;
 }
