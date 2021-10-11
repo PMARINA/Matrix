@@ -20,41 +20,41 @@ double** ludecompose(const double* m, const int n) {
 
   // For caching the current column from U12
   double* solvedUpper = (double*)malloc(sizeof(double) * n);
-  cout << "Everything should be 0 here " << endl;
-  printMatrices((double*)m, results, 4);
-  cout << "Starting computation" << endl;
+  double* solvedLower = (double*) malloc(sizeof(double) * n);
+  // cout << "Everything should be 0 here " << endl;
+  // printMatrices((double*)m, results, 4);
+  // cout << "Starting computation" << endl;
   // Left looking, so we iterate by column, then by row!
-  for (int j = 0; j < 2; j++) {
+  for (int j = 0; j < n; j++) {
     // The first row is the same as the original matrix
     const double fromOrig = m[j];
-    // printMatrices((double*)m, results, 4);
-    // string test;
-    // cin >> test;
     u[j] = fromOrig;
-    // printMatrices((double*)m, results, 4);
-    // cin >> test;
     l[j * n + j] = 1;
     
     solvedUpper[0] = fromOrig;
-    double upperPivotSum = j == 0 ? 0 : l[n] * solvedUpper[j*n];
+    double upperPivotSum = (j == 0) ? 0 : l[n] * solvedUpper[j*n];
+    if (j == 1){
+      upperPivotSum += l[n] * solvedUpper[0];
+    }
     // i < j to avoid solving 0s at bottom of upper matrix.
     // Don't run the loop if it's going to hit 1,1
-
-    for (int i = (j == 1 ? 2 : 1); i < j; i++) {
-      // Step 1: Solve for U21 through triangular solve
-      double triangularSum = 0;
-
-      for (int k = 0; k < i; k++)
-        triangularSum += solvedUpper[k] * l[i * n + k];
-
-      const double thisSolution = m[i * n + j] - triangularSum;
-      u[i * n + j] = thisSolution;
-      cout << "i: " << i << "\tj: " << j << endl;
-      solvedUpper[i] = thisSolution;
-
-      // Perform the addition/product for step 2 as we compute the necessary
-      // elements. Use it while it's in register?
-      upperPivotSum += l[j * n + i] * thisSolution;
+    if (j >= 2){
+      for (int i = 1; i < j; i++) {
+        // Step 1: Solve for U21 through triangular solve
+        double triangularSum = 0;
+  
+        for (int k = 0; k < i; k++)
+          triangularSum += solvedUpper[k] * l[i * n + k];
+  
+        const double thisSolution = m[i * n + j] - triangularSum;
+        u[i * n + j] = thisSolution;
+        cout << "i: " << i << "\tj: " << j << endl;
+        solvedUpper[i] = thisSolution;
+  
+        // Perform the addition/product for step 2 as we compute the necessary
+        // elements. Use it while it's in register?
+        upperPivotSum += l[j * n + i] * thisSolution;
+      }
     }
 
     double u22 = 0;
@@ -70,25 +70,27 @@ double** ludecompose(const double* m, const int n) {
     solvedUpper[j] = u22;
     const double invU22 = 1 / u22;
     // Step 3: Solve the lower matrix
-    for (int i = j + 1; i < n; i++) {
+    for (int i = j+1; i < n; i++) {
       if(j == 1 && i==2)
-        cout <<"test"<<endl;
+        cout <<"test"<<endl<<endl<<endl;
       double sumL31U12Product = 0;
       if (j != 0) {
         for (int k = 0; k < i; k++) {
           sumL31U12Product += l[(i - 1) * n + k] * solvedUpper[k];
         }
+        cout << "sum L31U12 Product = " << sumL31U12Product <<endl;
       }
       const double thisSolution =
           (m[(i - j) * n + j] - sumL31U12Product) * invU22;
       cout << "L[" << i + 1 << ", " << j + 1 << "] = " << thisSolution << endl;
       l[i * n + j] = thisSolution;
     }
-    cout << "End of solution iteration/column" << endl;
-    printMatrices((double*)m, results, 4);
+    // cout << "End of solution iteration/column" << endl;
+    // printMatrices((double*)m, results, 4);
     
   }
   // free(solvedUpper);
+  // free(solvedLower)
 
   return results;
 }
