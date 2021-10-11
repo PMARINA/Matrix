@@ -55,17 +55,16 @@ double** ludecompose(const double* m, const int n) {
       upperPivotSum = l[n] * solvedUpper[0];
     }
     // Step 2: Solve the single diagonal element of U22
-    solvedUpper[0] = u22;
     if (j != 0) {
       u22 = m[j * n + j] - upperPivotSum;
-      // cout << "diagonal " << j << ", " << j;
-      // cout << ": " << u22 << endl;
       u[j * n + j] = u22;
-      solvedUpper[j] = u22;
     }
+    solvedUpper[j] = u22;
     const double invU22 = 1 / u22;
     // Step 3: Solve the lower matrix
     for (int i = j + 1; i < n; i++) {
+      if(j == 1 && i==2)
+        cout <<"test"<<endl;
       double sumL31U12Product = 0;
       if (j != 0) {
         for (int k = 0; k < i; k++) {
