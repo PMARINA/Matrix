@@ -20,110 +20,64 @@ double** ludecompose(const double* m, const int n) {
 
   // For caching the current column from U12
   double* solvedUpper = (double*)malloc(sizeof(double) * n);
-  double* sumLowerRows = (double*) malloc(sizeof(double) * n);
-  memset(sumLowerRows, 0, sizeof(double)*n);
-  // cout << "Everything should be 0 here " << endl;
-  // printMatrices((double*)m, results, 4);
-  // cout << "Starting computation" << endl;
-  // Left looking, so we iterate by column, then by row!
-  for (int j = 0; j < n; j++) {
-    // The first row is the same as the original matrix
-    const double fromOrig = m[j];
-    u[j] = fromOrig;
-    l[j * n + j] = 1;
-    
-    solvedUpper[0] = fromOrig;
-    double upperPivotSum = (j == 0) ? 0 : l[n] * solvedUpper[j*n];
-    cout << "upper PIVOT SUM START = " << upperPivotSum << endl;
-    if (j == 1){
-      upperPivotSum += l[n] * solvedUpper[0];
-    }
-    // i < j to avoid solving 0s at bottom of upper matrix.
-    // Don't run the loop if it's going to hit 1,1
-    if (j >= 2){
-      for (int i = 1; i < j; i++) {
-        // Step 1: Solve for U21 through triangular solve
+  double* solvedLower = (double*) malloc(sizeof(double) * n);
+  
+  for(int j = 0 ; j<n; j++){
+    // Step 1
+    solvedUpper[0] = m[j];
+    solvedLower[j] = 1;
+    if(j >= 2){ // unnecessary if... remove later?
+      for(int i = 1; i<j; i++){
         double triangularSum = 0;
-  
-        for (int k = 0; k < i; k++)
-          triangularSum += solvedUpper[k] * l[i * n + k];
-  
-        const double thisSolution = m[i * n + j] - triangularSum;
-        u[i * n + j] = thisSolution;
-        // cout << "i: " << i << "\tj: " << j << endl;
-        solvedUpper[i] = thisSolution;
-  
-        // Perform the addition/product for step 2 as we compute the necessary
-        // elements. Use it while it's in register?
-        // cout << "L[" << j + 1 << ", " << i+1 -1<< "] = " << l[j * n + i-1] << endl;
-        upperPivotSum += l[j * n + i] * thisSolution;
-        cout << "upper PIVOT SUM += " << l[j * n + i] * thisSolution << endl;
-      }
-      // cout << "jn = " << j*n << endl;
-      if (j != n-1)upperPivotSum += l[(j)*n + 1] * solvedUpper[j-1]; 
-      cout << "UPPER PIVOT SUM = " << upperPivotSum<<endl;
-      
-    }
-
-    double u22 = 0;
-
-    if (j == 0) {
-      u22 = m[0];
-    }
-    // Step 2: Solve the single diagonal element of U22
-    if (j != 0) {
-      u22 = m[j * n + j] - upperPivotSum;
-      cout << "A = " << m[j*n+j] << endl;
-      cout << "U22 = " << u22 <<endl << endl;
-      u[j * n + j] = u22;
-    }
-    solvedUpper[j] = u22;
-    const double invU22 = 1 / u22;
-    // Step 3: Solve the lower matrix
-    sumLowerRows[j] += 1;
-    for (int i = j+1; i < n; i++) {
-      double thisSolution = 0;
-      if(j == 2 && i==3){
-        cout <<"test"<<endl<<endl<<endl<<endl<<endl << "u22: " << u22<<endl;;
-      }
-      double sumL31U12Product = 0;
-      if (j != 0) {
-         double u12 = 0;
-        if (j == 1){
-          // U12 is a single value
-          u12 = solvedUpper[0];
-          sumL31U12Product = sumLowerRows[i] * u12;
-        } else {
-          u12 = solvedUpper[i-j-1];
+        for(int k = 0; k< i; k++){
+          triangularSum += l[i*n+k] * solvedUpper[k];
         }
-         double l31 = 0;
-        if (j == (n-2)){
-          // L31 is a single row sum
-          l31 = sumLowerRows[n-1];
-        } else {
-          l31 = sumLowerRows[i];
-        }
-        cout << "Solved Upper [" << i-j-1 << "] = " << u12 << endl;
-        cout << "l31 = " << l31 << endl;
-        sumL31U12Product = l31 * u12;//(i - 1) * n + k
-        cout << "sum L31U12 Product = " << sumL31U12Product <<endl;
-        cout << "SumLowerRows[" << i <<"] = " << sumLowerRows[i] <<endl;
-        cout << "A[" << i-j+2 << ", " << j+1 << "] = " << m[(i - j+1) * n + j] << endl;
-        thisSolution = (m[(i - j+1) * n + j] - sumL31U12Product) * invU22;
-      } else {
-        thisSolution = (m[(i - j) * n + j] - sumL31U12Product) * invU22;
+        solvedUpper[i] = m[i*n+j] - triangularSum;
       }
-      
-      // cout << "L[" << i + 1 << ", " << j + 1 << "] = " << thisSolution << endl<<endl;
-      l[i * n + j] = thisSolution;
-      sumLowerRows[i] += thisSolution;
     }
-    // cout << "End of solution iteration/column" << endl;
-    // printMatrices((double*)m, results, 4);
     
+    // Step 2
+    double invu22 = 1/solvedUpper[0];
+    if(j != 0){
+      double l21u12 = 0;
+      for(int i = 0; i<j; i++){
+        l21u12 += l[j*n+i] - solvedUpper[i];
+      }
+      double u22 = m[j*(n+1)] - l21u12;
+      invu22 = 1/u22;
+      solvedUpper[j] = u22;
+    }
+    
+    // Step 3
+    for(int i = j+1; i<n; i++){
+      double l31u12 = 0;
+      if(j != 0){
+        if(j == 1){
+          l31u12 = l[n] * solvedUpper[0];
+        } else {
+          for(int k = 0; k<j; k++){
+            l31u12 += l[i*n+k] * solvedUpper[k];
+          }
+        }
+      }
+      solvedLower[i] = (m[i*n+j] - l31u12) * invu22;
+    }
+    
+    // Copy the answers from the vectors into the answer matrices
+    for(int i = 0; i<n; i++){
+      if(i < j){
+        u[i*n+j] = solvedUpper[i];
+      } else if(i == j){
+        u[i*n+j] = solvedUpper[i];
+        l[i*n + j] = solvedLower[i];
+      } else {
+        l[i*n + j] = solvedLower[i];
+      }
+    }
   }
-  // free(solvedUpper);
-  // free(sumLowerRows)
+  
+  free(solvedUpper);
+  free(solvedLower);
 
   return results;
 }
