@@ -4,8 +4,8 @@
 
 #include <memory>
 
-#include "matrixGenerator.cc"
-
+// #include "matrixGenerator.cc"
+#include "matrixParser.cc"
 #include "matrixPrinter.cc"
 
 using std::cin;
@@ -86,8 +86,9 @@ double ** ludecompose(const double * m,
 }
 
 int main() {
-  const int n = 4;
-  double * matrix = genMatrix(n);
+  const int n = 16;
+  // double * matrix = genMatrix(n);
+  double* matrix = parseFromMTX("Mat16_16.mtx", n);
   double ** result = ludecompose(matrix, n);
   printMatrices(matrix, result, n);
   free(matrix);
