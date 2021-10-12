@@ -56,7 +56,7 @@ double ** ludecompose(const double * m,
       double l31u12 = 0;
       if (j != 0) {
         if (j == 1) {
-          l31u12 = l[n] * solvedUpper[0];
+          l31u12 = l[i*n] * solvedUpper[0];
         } else {
           for (int k = 0; k < j; k++) {
             l31u12 += l[i * n + k] * solvedUpper[k];
