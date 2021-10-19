@@ -39,12 +39,10 @@ void LU_Dense_Gaussian::solve() {
   }
 }
 DenseMatrix *LU_Dense_Gaussian::get_upper() {
-  if (upper == nullptr)
-    solve();
+  if (upper == nullptr) solve();
   return upper;
 }
 DenseMatrix *LU_Dense_Gaussian::get_lower() {
-  if (lower == nullptr)
-    solve();
+  if (lower == nullptr) solve();
   return lower;
 }

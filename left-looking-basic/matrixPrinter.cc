@@ -3,13 +3,12 @@
 using std::cout;
 using std::endl;
 
-void printMatrices(double *original, double **results,
-                    int pivot_size) {
+void printMatrices(double *original, double **results, int pivot_size) {
   double *l = (double *)(results[0]);
   double *u = (double *)(results[1]);
-  
-  cout << "L was " << l <<endl;
-  cout << "U was " << u <<endl;
+
+  cout << "L was " << l << endl;
+  cout << "U was " << u << endl;
 
   int n = pivot_size;
 
