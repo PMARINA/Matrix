@@ -91,26 +91,16 @@ void solveTypeTwo(double *dstL, const double *srcU, double *srcM, const int &blo
 {
   int index;
 
-  // o = offset from the leftmost column
-  for (int o = 0; o < blockSize; o++)
-  {
-    // o*n+o = o*(n+1)
-    const double pivotInverse = 1 / srcU[o * (blockSize + 1)];
-
-    // Solve the left most column
-    // o = 0 because we need to cover all rows
-    for (int o = 0; o < blockSize; o++)
-    {
-      index = o * blockSize + o;
+  for(int o = 0; o<blockSize; o++){
+    const double pivotInverse = 1/srcU[o*(blockSize + 1)];
+    for(int i = 0; i < blockSize; i++){
+      index = i*blockSize + o;
       dstL[index] = srcM[index] * pivotInverse;
     }
 
-    // Schur Complement
-    for (int o = o + 1; o < blockSize; o++)
-    {
-      for (int j = o + 1; j < blockSize; j++)
-      {
-        srcM[o * blockSize + j] -= dstL[o * blockSize + o] * srcU[o * blockSize + j];
+    for(int i = 0; i <blockSize; i++){
+      for(int j = o + 1; j < blockSize; j++){
+        srcM[i*blockSize + j] -= dstL[i*blockSize + o] * srcU[o*blockSize + j];
       }
     }
   }
@@ -135,7 +125,7 @@ void solveTypeThree(double *dstU, double *srcL, double *srcM, const int &blockSi
   for (int o = 0; o < n; o++)
   {
     // Copy the top row into u-matrix
-    for (int j = o; j < n; j++)
+    for (int j = 0; j < n; j++)
     {
       index = o * n + j;
       u[index] = m[index];
@@ -144,7 +134,7 @@ void solveTypeThree(double *dstU, double *srcL, double *srcM, const int &blockSi
     // Perform Schur's complement on the remaining cells
     for (int j = o + 1; j < n; j++)
     {
-      for (int k = o + 1; k < n; k++)
+      for (int k = 0; k < n; k++)
       {
         m[j * n + k] -= l[j * n + o] * u[o * n + k];
       }
@@ -162,20 +152,20 @@ void solveTypeThree(double *dstU, double *srcL, double *srcM, const int &blockSi
  * @param dstM The source data from M matrix. Read & Write - schur's complement
  * @param blockSize The width or height of a square block
  */
-void solveTypeOne(const double *&srcL, const double *&srcU, double *dstM, const int blockSize)
+void solveTypeFour(double *&srcL, double *&srcU, double *dstM, const int blockSize)
 {
   int index;
-  const double *&u = srcU;
+  double *&u = srcU;
   double *&m = dstM;
-  const double *&l = srcL;
+  double *&l = srcL;
   const int &n = blockSize;
   // Basic loop from unblocked
   for (int o = 0; o < n; o++)
   {
     // Perform Schur's complement on the remaining cells
-    for (int j = o + 1; j < n; j++)
+    for (int j = 0; j < n; j++)
     {
-      for (int k = o + 1; k < n; k++)
+      for (int k = 0; k < n; k++)
       {
         m[j * n + k] -= l[j * n + o] * u[o * n + k];
       }
@@ -190,17 +180,20 @@ double ***lu_decompose(double **blockedMatrix, const int &numBlocks, const int &
   double **u = results[1];
   for (int o = 0; o < numBlocks; o++)
   {
-    solveTypeOne(l[o*(numBlocks+1)], u[o*(numBlocks+1)], blockedMatrix[o*(numBlocks + 1)], blockSize);
-    for(int i = o; i<numBlocks; i++){
-      solveTypeTwo(l[i*numBlocks + o], u[o*(numBlocks+1)], blockedMatrix[i*numBlocks+o], blockSize);
-    }
-    for(int j = o; j<numBlocks; j++){
-      solveTypeThree(u[o*numBlocks+j], l[o*(numBlocks+1)], blockedMatrix[o*numBlocks+j], blockSize);
-    }
-    for (int i = o+1; i < numBlocks; i++)
+    solveTypeOne(l[o * (numBlocks + 1)], u[o * (numBlocks + 1)], blockedMatrix[o * (numBlocks + 1)], blockSize);
+    for (int i = o + 1; i < numBlocks; i++)
     {
-      for (int j = o+1; j < numBlocks; j++)
+      solveTypeTwo(l[i * numBlocks + o], u[o * (numBlocks + 1)], blockedMatrix[i * numBlocks + o], blockSize);
+    }
+    for (int j = o + 1; j < numBlocks; j++)
+    {
+      solveTypeThree(u[o * numBlocks + j], l[o * (numBlocks + 1)], blockedMatrix[o * numBlocks + j], blockSize);
+    }
+    for (int i = o + 1; i < numBlocks; i++)
+    {
+      for (int j = o + 1; j < numBlocks; j++)
       {
+        solveTypeFour(l[i * numBlocks + o], u[o*numBlocks + j], blockedMatrix[i * numBlocks + j], blockSize);
       }
     }
   }
@@ -227,7 +220,7 @@ int main()
 
   double *matrix = parseFromMTX("Mat20_20.mtx", n);
   double **blockedMatrix = denseToDenseBlocked(matrix, n, blockSize);
-  double ***resultBlocked = lu_decompose(blockedMatrix, n/blockSize, blockSize);
+  double ***resultBlocked = lu_decompose(blockedMatrix, n / blockSize, blockSize);
   double **resultDense = getResultDense(resultBlocked, n / blockSize, blockSize);
   printMatrices(matrix, resultDense, n);
 }
