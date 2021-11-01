@@ -14,7 +14,7 @@ using std::getline;
 using std::ifstream;
 using std::stod;
 const char comment_char = '%';
-double* parseFromMTX(string filepath, int n) {
+double* parseFromMTX(string filepath, int n, int nBlockSize = 4) {
   // Make sure the path exists, using an absolute filepath for clarity
   fs::path path(filepath);
   filepath = fs::absolute(path).string();

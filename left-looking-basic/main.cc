@@ -84,9 +84,9 @@ double** ludecompose(const double* m, const int n) {
 }
 
 int main() {
-  const int n = 16;
+  const int n = 20;
   // double * matrix = genMatrix(n);
-  double* matrix = parseFromMTX("Mat16_16.mtx", n);
+  double* matrix = parseFromMTX("Mat20_20.mtx", n);
   double** result = ludecompose(matrix, n);
   printMatrices(matrix, result, n);
   free(matrix);

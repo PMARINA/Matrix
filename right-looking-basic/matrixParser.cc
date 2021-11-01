@@ -75,5 +75,6 @@ double* parseFromMTX(string filepath, int n) {
       }
     }
   }
+  input_file.close();
   return m;
 }

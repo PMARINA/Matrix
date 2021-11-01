@@ -6,59 +6,228 @@
 // #include "matrixGenerator.cc"
 #include "matrixParser.cc"
 #include "matrixPrinter.cc"
+#include "convertMatrix.cc"
 
 using std::cin;
 using std::string;
 
-double** ludecompose(double* m, const int n) {
-  double** results = (double**)malloc(sizeof(double*) * 2);
-  double* l = (double*)malloc(n * n * sizeof(double));
-  double* u = (double*)malloc(n * n * sizeof(double));
-  memset(l, 0, n * n * sizeof(double));
-  memset(u, 0, n * n * sizeof(double));
+double ***initializeResults(int nOverall, const int blockSize)
+{
+  const int numBlocks = nOverall / blockSize;
+  const int blockSize_bytes = blockSize * blockSize * sizeof(double);
+  double ***results = (double ***)malloc(sizeof(double **) * 2);
+  double **l = (double **)malloc(sizeof(double *) * numBlocks * numBlocks);
+  double **u = (double **)malloc(sizeof(double *) * numBlocks * numBlocks);
   results[0] = l;
   results[1] = u;
 
-  // For caching the current column from U12
-  double* solvedUpper = (double*)malloc(sizeof(double) * n);
-  double* solvedLower = (double*)malloc(sizeof(double) * n);
-  int index;
-  double pivotInverse;
-  for (int i = 0; i < n; i++) {
-    for (int j = i; j < n; j++) {
-      index = i * n + j;  // Could replace with index++
-      u[index] = m[index];
-    }
-    const double pivotInverse = 1 / u[i * (n + 1)];
-    for (int j = i; j < n; j++) {
-      index = j * n + i;  // Could replace with index += n
-      l[index] = j == i ? 1 : pivotInverse * m[index];
-    }
-    for (int j = i + 1; j < n; j++) {
-      for (int k = i + 1; k < n; k++) {
-        m[j * n + k] -= l[j * n + i] * u[i * n + k];
-      }
+  double *currBlock = nullptr;
+  for (int i = 0; i < 2; i++)
+  {
+    for (int o = 0; o < numBlocks * numBlocks; o++)
+    {
+      currBlock = (double *)malloc(blockSize_bytes);
+      results[i][o] = currBlock;
+      memset(currBlock, 0, blockSize_bytes);
     }
   }
-
-  free(solvedUpper);
-  free(solvedLower);
-
   return results;
 }
 
-int main() {
-  const int n = 4;
-  // double * matrix = genMatrix(n);
-  double* matrix = parseFromMTX("Mat4_4.mtx", n);
-  double* newMatrix = (double*)malloc(sizeof(double) * n * n);
-  memcpy(newMatrix, matrix, n * n * sizeof(double));
-  double** result = ludecompose(newMatrix, n);
-  printMatrices(matrix, result, n);
-  free(matrix);
-  free(newMatrix);
-  for (int i = 0; i < 2; i++) {
-    free(result[i]);
+/**
+ * @brief Solve type one blocks in right-looking-blocked
+ *
+ * We perform regular right-looking on a single-block, iteratively.
+ * 
+ * @param dstL The destination L matrix block, corresponding with M. Write-only
+ * @param dstU The destination U matrix block, corresponding with M. Write-only
+ * @param srcM The source data from M matrix. Read & Write - schur's complement
+ * @param blockSize The width or height of a square block
+ */
+void solveTypeOne(double *dstL, double *dstU, double *srcM, const int blockSize)
+{
+  int index;
+  double *&u = dstU;
+  double *&m = srcM;
+  double *&l = dstL;
+  const int &n = blockSize;
+  // Basic loop from unblocked
+  for (int o = 0; o < n; o++)
+  {
+    // Copy the top row into u-matrix
+    for (int j = o; j < n; j++)
+    {
+      index = o * n + j;
+      u[index] = m[index];
+    }
+    // o*n+o -> o*(n+1)
+    // Solve the lower matrix for that line
+    const double pivotInverse = 1 / u[o * (n + 1)];
+    for (int j = o; j < n; j++)
+    {
+      index = j * n + o; // Could replace with index += n
+      l[index] = j == o ? 1 : pivotInverse * m[index];
+    }
+    // Perform Schur's complement on the remaining cells
+    for (int j = o + 1; j < n; j++)
+    {
+      for (int k = o + 1; k < n; k++)
+      {
+        m[j * n + k] -= l[j * n + o] * u[o * n + k];
+      }
+    }
   }
-  free(result);
+}
+
+/**
+ * @brief Solve type two blocks of right-looking-blocked (left-vertical column)
+ * 
+ * @param dstL The L block being solved - write only
+ * @param srcU The U block corresponding to the pivot block?
+ * @param srcM The M block corresponding to the left block being solved
+ * @param blockSize The width or height of a square block
+ */
+void solveTypeTwo(double *dstL, const double *srcU, double *srcM, const int &blockSize)
+{
+  int index;
+
+  // o = offset from the leftmost column
+  for (int o = 0; o < blockSize; o++)
+  {
+    // o*n+o = o*(n+1)
+    const double pivotInverse = 1 / srcU[o * (blockSize + 1)];
+
+    // Solve the left most column
+    // o = 0 because we need to cover all rows
+    for (int o = 0; o < blockSize; o++)
+    {
+      index = o * blockSize + o;
+      dstL[index] = srcM[index] * pivotInverse;
+    }
+
+    // Schur Complement
+    for (int o = o + 1; o < blockSize; o++)
+    {
+      for (int j = o + 1; j < blockSize; j++)
+      {
+        srcM[o * blockSize + j] -= dstL[o * blockSize + o] * srcU[o * blockSize + j];
+      }
+    }
+  }
+}
+
+/**
+ * @brief Solve type three blocks of right-looking-blocked (top horizontal row)
+ * 
+ * @param dstU The U block being solved
+ * @param srcL The L block corresponding to the pivot
+ * @param srcM The M block corresponding to the top block being served
+ * @param blockSize The width or height of a square block
+ */
+void solveTypeThree(double *dstU, double *srcL, double *srcM, const int &blockSize)
+{
+  int index;
+  double *&u = dstU;
+  double *&m = srcM;
+  double *&l = srcL;
+  const int &n = blockSize;
+  // o is the row-offset from the top
+  for (int o = 0; o < n; o++)
+  {
+    // Copy the top row into u-matrix
+    for (int j = o; j < n; j++)
+    {
+      index = o * n + j;
+      u[index] = m[index];
+    }
+    // No need to solve the lower matrix, as we're strictly above the pivot
+    // Perform Schur's complement on the remaining cells
+    for (int j = o + 1; j < n; j++)
+    {
+      for (int k = o + 1; k < n; k++)
+      {
+        m[j * n + k] -= l[j * n + o] * u[o * n + k];
+      }
+    }
+  }
+}
+
+/**
+ * @brief Solve type four blocks in right-looking-blocked
+ *
+ * We perform schur's complement on a single-block, iteratively.
+ * 
+ * @param srcL The destination L matrix block, corresponding with left-most. read-only
+ * @param srcU The destination U matrix block, corresponding with top-most. read-only
+ * @param dstM The source data from M matrix. Read & Write - schur's complement
+ * @param blockSize The width or height of a square block
+ */
+void solveTypeOne(const double *&srcL, const double *&srcU, double *dstM, const int blockSize)
+{
+  int index;
+  const double *&u = srcU;
+  double *&m = dstM;
+  const double *&l = srcL;
+  const int &n = blockSize;
+  // Basic loop from unblocked
+  for (int o = 0; o < n; o++)
+  {
+    // Perform Schur's complement on the remaining cells
+    for (int j = o + 1; j < n; j++)
+    {
+      for (int k = o + 1; k < n; k++)
+      {
+        m[j * n + k] -= l[j * n + o] * u[o * n + k];
+      }
+    }
+  }
+}
+
+double ***lu_decompose(double **blockedMatrix, const int &numBlocks, const int &blockSize)
+{
+  double ***results = initializeResults(numBlocks * blockSize, blockSize);
+  double **l = results[0];
+  double **u = results[1];
+  for (int o = 0; o < numBlocks; o++)
+  {
+    solveTypeOne(l[o*(numBlocks+1)], u[o*(numBlocks+1)], blockedMatrix[o*(numBlocks + 1)], blockSize);
+    for(int i = o; i<numBlocks; i++){
+      solveTypeTwo(l[i*numBlocks + o], u[o*(numBlocks+1)], blockedMatrix[i*numBlocks+o], blockSize);
+    }
+    for(int j = o; j<numBlocks; j++){
+      solveTypeThree(u[o*numBlocks+j], l[o*(numBlocks+1)], blockedMatrix[o*numBlocks+j], blockSize);
+    }
+    for (int i = o+1; i < numBlocks; i++)
+    {
+      for (int j = o+1; j < numBlocks; j++)
+      {
+      }
+    }
+  }
+  return results;
+}
+
+double **getResultDense(double ***resultsBlocked, int numBlocks, int blockSize)
+{
+  double **results = (double **)malloc(sizeof(double *) * 2);
+  double *l = blockedToDense(resultsBlocked[0], numBlocks, blockSize);
+  double *u = blockedToDense(resultsBlocked[1], numBlocks, blockSize);
+  results[0] = l;
+  results[1] = u;
+  return results;
+}
+
+int main()
+{
+  const int n = 20;
+  const int blockSize = 4;
+
+  if (n % blockSize != 0)
+    throw std::runtime_error("Expected blocksize to be a divisor of n.");
+
+  double *matrix = parseFromMTX("Mat20_20.mtx", n);
+  double **blockedMatrix = denseToDenseBlocked(matrix, n, blockSize);
+  double ***resultBlocked = lu_decompose(blockedMatrix, n/blockSize, blockSize);
+  double **resultDense = getResultDense(resultBlocked, n / blockSize, blockSize);
+  printMatrices(matrix, resultDense, n);
 }
