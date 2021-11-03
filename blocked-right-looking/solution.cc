@@ -2,7 +2,6 @@
 
 #include <cstring>
 #include <memory>
-
 // #include "matrixGenerator.cc"
 #include "convertMatrix.cc"
 #include "matrixParser.cc"
