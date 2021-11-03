@@ -91,16 +91,20 @@ void solveTypeTwo(double *dstL, const double *srcU, double *srcM, const int &blo
 {
   int index;
 
-  for(int o = 0; o<blockSize; o++){
-    const double pivotInverse = 1/srcU[o*(blockSize + 1)];
-    for(int i = 0; i < blockSize; i++){
-      index = i*blockSize + o;
+  for (int o = 0; o < blockSize; o++)
+  {
+    const double pivotInverse = 1 / srcU[o * (blockSize + 1)];
+    for (int i = 0; i < blockSize; i++)
+    {
+      index = i * blockSize + o;
       dstL[index] = srcM[index] * pivotInverse;
     }
 
-    for(int i = 0; i <blockSize; i++){
-      for(int j = o + 1; j < blockSize; j++){
-        srcM[i*blockSize + j] -= dstL[i*blockSize + o] * srcU[o*blockSize + j];
+    for (int i = 0; i < blockSize; i++)
+    {
+      for (int j = o + 1; j < blockSize; j++)
+      {
+        srcM[i * blockSize + j] -= dstL[i * blockSize + o] * srcU[o * blockSize + j];
       }
     }
   }
@@ -173,26 +177,32 @@ void solveTypeFour(double *&srcL, double *&srcU, double *dstM, const int blockSi
   }
 }
 
-double ***lu_decompose(double **blockedMatrix, const int &numBlocks, const int &blockSize, double*** results)
+double ***lu_decompose(double **blockedMatrix, const int &numBlocks, const int &blockSize, double ***results)
 {
   double **l = results[0];
   double **u = results[1];
-  for (int o = 0; o < numBlocks; o++)
   {
-    solveTypeOne(l[o * (numBlocks + 1)], u[o * (numBlocks + 1)], blockedMatrix[o * (numBlocks + 1)], blockSize);
-    for (int i = o + 1; i < numBlocks; i++)
+    for (int o = 0; o < numBlocks; o++)
     {
-      solveTypeTwo(l[i * numBlocks + o], u[o * (numBlocks + 1)], blockedMatrix[i * numBlocks + o], blockSize);
-    }
-    for (int j = o + 1; j < numBlocks; j++)
-    {
-      solveTypeThree(u[o * numBlocks + j], l[o * (numBlocks + 1)], blockedMatrix[o * numBlocks + j], blockSize);
-    }
-    for (int i = o + 1; i < numBlocks; i++)
-    {
+      solveTypeOne(l[o * (numBlocks + 1)], u[o * (numBlocks + 1)], blockedMatrix[o * (numBlocks + 1)], blockSize);
+      #pragma omp parallel for
+      for (int i = o + 1; i < numBlocks; i++)
+      {
+        solveTypeTwo(l[i * numBlocks + o], u[o * (numBlocks + 1)], blockedMatrix[i * numBlocks + o], blockSize);
+      }
+      #pragma omp parallel for
       for (int j = o + 1; j < numBlocks; j++)
       {
-        solveTypeFour(l[i * numBlocks + o], u[o*numBlocks + j], blockedMatrix[i * numBlocks + j], blockSize);
+        solveTypeThree(u[o * numBlocks + j], l[o * (numBlocks + 1)], blockedMatrix[o * numBlocks + j], blockSize);
+      }
+      #pragma omp parallel for
+      for (int i = o + 1; i < numBlocks; i++)
+      {
+        #pragma omp parallel for
+        for (int j = o + 1; j < numBlocks; j++)
+        {
+          solveTypeFour(l[i * numBlocks + o], u[o * numBlocks + j], blockedMatrix[i * numBlocks + j], blockSize);
+        }
       }
     }
   }
