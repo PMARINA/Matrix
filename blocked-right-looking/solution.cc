@@ -60,7 +60,12 @@ void solveTypeOne(double *dstL, double *dstU, double *srcM,
     const double pivotInverse = 1 / u[o * (n + 1)];
     for (int j = o; j < n; j++) {
       index = j * n + o;  // Could replace with index += n
-      l[index] = j == o ? 1 : pivotInverse * m[index];
+      // Assume that the ones will be identified by the printer, and therefore unnecessary to store.
+      if(j == o){
+        continue;
+      } else {
+        l[index] = j == o ? 1 : pivotInverse * m[index];
+      }
     }
     // Perform Schur's complement on the remaining cells
     for (int j = o + 1; j < n; j++) {
@@ -165,19 +170,20 @@ double ***lu_decompose(double **blockedMatrix, const int &numBlocks,
                        const int &blockSize, double ***results) {
   double **l = results[0];
   double **u = results[1];
+  double **m = blockedMatrix;
   {
     for (int o = 0; o < numBlocks; o++) {
-      solveTypeOne(l[o * (numBlocks + 1)], u[o * (numBlocks + 1)],
-                   blockedMatrix[o * (numBlocks + 1)], blockSize);
+      solveTypeOne(m[o * (numBlocks + 1)], m[o * (numBlocks + 1)],
+                   m[o * (numBlocks + 1)], blockSize);
 #pragma omp parallel for
       for (int i = o + 1; i < numBlocks; i++) {
-        solveTypeTwo(l[i * numBlocks + o], u[o * (numBlocks + 1)],
-                     blockedMatrix[i * numBlocks + o], blockSize);
+        solveTypeTwo(m[i * numBlocks + o], m[o * (numBlocks + 1)],
+                     m[i * numBlocks + o], blockSize);
       }
 #pragma omp parallel for
       for (int j = o + 1; j < numBlocks; j++) {
-        solveTypeThree(u[o * numBlocks + j], l[o * (numBlocks + 1)],
-                       blockedMatrix[o * numBlocks + j], blockSize);
+        solveTypeThree(m[o * numBlocks + j], m[o * (numBlocks + 1)],
+                       m[o * numBlocks + j], blockSize);
       }
       int i, j;
 #pragma omp parallel default(shared)
@@ -186,8 +192,8 @@ double ***lu_decompose(double **blockedMatrix, const int &numBlocks,
         for (i = o + 1; i < numBlocks; i++) {
 #pragma omp parallel shared(i, numBlocks)
           for (j = o + 1; j < numBlocks; j++) {
-            solveTypeFour(l[i * numBlocks + o], u[o * numBlocks + j],
-                          blockedMatrix[i * numBlocks + j], blockSize);
+            solveTypeFour(m[i * numBlocks + o], m[o * numBlocks + j],
+                          m[i * numBlocks + j], blockSize);
           }
         }
       }

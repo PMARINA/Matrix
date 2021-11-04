@@ -27,7 +27,5 @@ int main() {
   auto stop = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>(stop - start);
   cout << "Execution time: " << duration.count() << " us" << endl;
-  double **resultDense =
-      getResultDense(resultBlocked, n / blockSize, blockSize);
-  // printMatrices(matrix, resultDense, n);
+  double **resultDense;
 }
