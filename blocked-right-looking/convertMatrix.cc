@@ -7,10 +7,13 @@ double **denseToDenseBlocked(double *dense, int dimN, int blockSize) {
   if (numBlocks * blockSize != dimN) return nullptr;
 
   double **ret = (double **)malloc(numBlocks * numBlocks * sizeof(double *));
+  double *underlying_mem = (double*) malloc(dimN*dimN*sizeof(double));
+
+  int blockSize_doubles = blockSize*blockSize;
 
   for (int i = 0; i < numBlocks; i++) {
     for (int j = 0; j < numBlocks; j++) {
-      double *m = (double *)malloc(blockSize * blockSize * sizeof(double));
+      double *m = underlying_mem + (blockSize_doubles*(i*numBlocks + j));//(double *)malloc(blockSize * blockSize * sizeof(double));
       ret[i * numBlocks + j] = m;
       for (int i_inner = 0; i_inner < blockSize; i_inner++) {
         for (int j_inner = 0; j_inner < blockSize; j_inner++) {

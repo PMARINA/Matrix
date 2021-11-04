@@ -3,7 +3,7 @@
 
 #include <chrono>
 #include <iostream>
-#define THREAD_NUM 4
+#define THREAD_NUM 8
 #include "solution.cc"
 
 using namespace std;
@@ -27,5 +27,6 @@ int main() {
   auto stop = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>(stop - start);
   cout << "Execution time: " << duration.count() << " us" << endl;
+  // printCombinedResult(blockedMatrix, matrix, n, blockSize);
   double **resultDense;
 }
